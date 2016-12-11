@@ -3,6 +3,7 @@ package gh
 import (
 	"crypto/md5"
 	"fmt"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
@@ -19,34 +20,38 @@ func NewKeyClient() (KeyClient, error) {
 	}, nil
 }
 
-func (kc KeyClient) GetKeyForUser(user string, wantedFingerprint string) (string, error) {
+func (kc KeyClient) GetKeysForUser(user string, wantedFingerprints string) ([]string, error) {
 	logrus.Debugf("Looking for keys:  %s", user)
+
+	keySet := []string{}
 
 	opts := &github.ListOptions{PerPage: 100}
 	keys, res, err := kc.client.Users.ListKeys(user, opts)
 	if err != nil {
-		return "", nil
+		return keySet, err
 	}
 
 	logrus.Debugf("RESP:\n%#v", res)
 
-	for _, key := range keys {
-		logrus.Debugf("KEY: %v\n", key)
+	for _, wantedFingerprint := range strings.Split(wantedFingerprints, ",") {
+		for _, key := range keys {
+			logrus.Debugf("KEY: %v\n", key)
 
-		fp, err := fingerprintMD5(*key.Key)
-		if err != nil {
-			return "", err
-		}
+			fp, err := fingerprintMD5(*key.Key)
+			if err != nil {
+				return keySet, err
+			}
 
-		logrus.Debugf("FP: %s", fp)
+			logrus.Debugf("FP: %s", fp)
 
-		if fp == wantedFingerprint {
-			logrus.Infof("Found key: %s", wantedFingerprint)
-			return *key.Key, nil
+			if fp == wantedFingerprint {
+				logrus.Infof("Found key: %s", wantedFingerprint)
+				keySet = append(keySet, *key.Key)
+			}
 		}
 	}
 
-	return "", fmt.Errorf("Key %s not found for user: %s", wantedFingerprint, user)
+	return keySet, nil
 }
 
 // There is a PR in the golang crypto lib that

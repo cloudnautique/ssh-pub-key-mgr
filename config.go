@@ -22,11 +22,17 @@ func initConfig(c *cli.Context) (map[string]interface{}, error) {
 	if len(source) == 2 {
 		config["source"] = source[0]
 		config["path"] = c.String("source")
-
-		return config, nil
+	} else {
+		return config, fmt.Errorf("Invalid config line: %s", c.String("source"))
 	}
+
+	if len(c.Args()) <= 0 {
+		return config, fmt.Errorf("No path to write authorized_keys file given")
+	}
+
+	config["authorizedKeysPath"] = c.Args().Get(0)
 
 	logrus.Infof("Config: %#v", config)
 
-	return config, fmt.Errorf("Invalid config line: %s", c.String("source"))
+	return config, nil
 }

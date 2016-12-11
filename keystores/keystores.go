@@ -5,7 +5,7 @@ import (
 )
 
 type BackendKeyClient interface {
-	GetKeyForUser(string, string) (string, error)
+	GetKeysForUser(string, string) ([]string, error)
 }
 
 func NewBackend(backendType string) (BackendKeyClient, error) {

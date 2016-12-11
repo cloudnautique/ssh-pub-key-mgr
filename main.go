@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"sort"
 
@@ -16,7 +17,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "ssh-pub-key-mgr"
 	app.Version = VERSION
-	app.Usage = "You need help!"
+	app.Usage = "set source flag, and send in the path to write authorized_keys"
 	app.Action = mainAction
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -37,6 +38,7 @@ func main() {
 
 func mainAction(c *cli.Context) error {
 	logrus.Info("Calling Main")
+	authorizedKeys := []string{}
 
 	config, err := initConfig(c)
 	if err != nil {
@@ -59,8 +61,38 @@ func mainAction(c *cli.Context) error {
 		return err
 	}
 
-	for user, fingerprint := range keys {
-		keyClient.GetKeyForUser(user, fingerprint)
+	for user, fingerprints := range keys {
+		keySet, err := keyClient.GetKeysForUser(user, fingerprints)
+		if err != nil {
+			return err
+		}
+		authorizedKeys = append(authorizedKeys, keySet...)
+	}
+
+	return writeAuthorizedKeysFile(true, authorizedKeys, config["authorizedKeysPath"].(string))
+}
+
+func writeAuthorizedKeysFile(clobber bool, keys []string, file string) error {
+	tmpFile := fmt.Sprintf("%s/authorized_keys.tmp", file)
+
+	f, err := os.Create(tmpFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	err = os.Chmod(tmpFile, 0600)
+	if err != nil {
+		return err
+	}
+
+	for _, key := range keys {
+		f.WriteString(fmt.Sprintf("%s\n", key))
+	}
+
+	err = os.Rename(tmpFile, fmt.Sprintf("%s/authorized_keys", file))
+	if err != nil {
+		return err
 	}
 
 	return nil
