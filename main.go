@@ -88,7 +88,6 @@ func mainAction(c *cli.Context) error {
 		}
 	}
 
-	return nil
 }
 
 func writeAuthorizedKeysFile(clobber bool, keys []string, file string) error {
