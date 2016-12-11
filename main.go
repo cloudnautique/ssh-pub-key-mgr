@@ -43,7 +43,7 @@ func main() {
 }
 
 func mainAction(c *cli.Context) error {
-	authorizedKeys := []string{}
+	var authorizedKeys []string
 
 	config, err := initConfig(c)
 	if err != nil {
@@ -68,6 +68,8 @@ func mainAction(c *cli.Context) error {
 	for {
 		select {
 		case <-refreshChannel:
+			authorizedKeys = []string{}
+
 			logrus.Debugf("Refreshing...")
 			keys, err := ds.GetKeys()
 			if err != nil {
@@ -82,8 +84,11 @@ func mainAction(c *cli.Context) error {
 				authorizedKeys = append(authorizedKeys, keySet...)
 			}
 
-			if err := writeAuthorizedKeysFile(true, authorizedKeys, config["authorizedKeysPath"].(string)); err != nil {
-				return err
+			// Avoid 0 length files
+			if len(authorizedKeys) > 0 {
+				if err := writeAuthorizedKeysFile(true, authorizedKeys, config["authorizedKeysPath"].(string)); err != nil {
+					return err
+				}
 			}
 		}
 	}
