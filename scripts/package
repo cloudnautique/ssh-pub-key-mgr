@@ -10,7 +10,7 @@ SUFFIX=""
 cd $(dirname $0)/../package
 
 TAG=${TAG:-${VERSION}${SUFFIX}}
-REPO=${REPO:-rancher}
+REPO=${REPO:-cloudnautique}
 
 cp ../bin/ssh-pub-key-mgr .
 docker build -t ${REPO}/ssh-pub-key-mgr:${TAG} .
