@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/cloudnautique/ssh-pub-key-mgr/keystores"
@@ -29,6 +30,11 @@ func main() {
 			Usage: "keystore backend",
 			Value: "github",
 		},
+		cli.IntFlag{
+			Name:  "refresh-interval,r",
+			Usage: "interval to check for updates in seconds",
+			Value: 600,
+		},
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))
@@ -37,7 +43,6 @@ func main() {
 }
 
 func mainAction(c *cli.Context) error {
-	logrus.Info("Calling Main")
 	authorizedKeys := []string{}
 
 	config, err := initConfig(c)
@@ -56,20 +61,34 @@ func mainAction(c *cli.Context) error {
 		return err
 	}
 
-	keys, err := ds.GetKeys()
-	if err != nil {
-		return err
-	}
+	refreshChannel := make(chan bool)
 
-	for user, fingerprints := range keys {
-		keySet, err := keyClient.GetKeysForUser(user, fingerprints)
-		if err != nil {
-			return err
+	go scheduleTimer(config["refresh"].(int), refreshChannel)
+
+	for {
+		select {
+		case <-refreshChannel:
+			logrus.Debugf("Refreshing...")
+			keys, err := ds.GetKeys()
+			if err != nil {
+				return err
+			}
+
+			for user, fingerprints := range keys {
+				keySet, err := keyClient.GetKeysForUser(user, fingerprints)
+				if err != nil {
+					return err
+				}
+				authorizedKeys = append(authorizedKeys, keySet...)
+			}
+
+			if err := writeAuthorizedKeysFile(true, authorizedKeys, config["authorizedKeysPath"].(string)); err != nil {
+				return err
+			}
 		}
-		authorizedKeys = append(authorizedKeys, keySet...)
 	}
 
-	return writeAuthorizedKeysFile(true, authorizedKeys, config["authorizedKeysPath"].(string))
+	return nil
 }
 
 func writeAuthorizedKeysFile(clobber bool, keys []string, file string) error {
@@ -96,4 +115,12 @@ func writeAuthorizedKeysFile(clobber bool, keys []string, file string) error {
 	}
 
 	return nil
+}
+
+func scheduleTimer(duration int, notify chan bool) {
+	logrus.Debugf("Scheduling refresh timer for: %d", duration)
+	for {
+		time.Sleep(time.Duration(duration) * time.Second)
+		notify <- true
+	}
 }

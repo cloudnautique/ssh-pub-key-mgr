@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -26,13 +25,13 @@ func initConfig(c *cli.Context) (map[string]interface{}, error) {
 		return config, fmt.Errorf("Invalid config line: %s", c.String("source"))
 	}
 
+	config["refresh"] = c.Int("refresh-interval")
+
 	if len(c.Args()) <= 0 {
 		return config, fmt.Errorf("No path to write authorized_keys file given")
 	}
 
 	config["authorizedKeysPath"] = c.Args().Get(0)
-
-	logrus.Infof("Config: %#v", config)
 
 	return config, nil
 }
