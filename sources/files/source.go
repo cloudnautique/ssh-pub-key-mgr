@@ -13,9 +13,11 @@ type Source struct {
 	filePath string
 }
 
-func NewSource() (Source, error) {
+func NewSource(config map[string]interface{}) (Source, error) {
+	path := strings.SplitN(config["path"].(string), "://", 2)
+
 	return Source{
-		filePath: "./test.keys",
+		filePath: path[1],
 	}, nil
 }
 

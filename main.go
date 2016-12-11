@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"sort"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/cloudnautique/ssh-pub-key-mgr/keystores"
@@ -17,6 +18,19 @@ func main() {
 	app.Version = VERSION
 	app.Usage = "You need help!"
 	app.Action = mainAction
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "source,s",
+			Usage: "location to `file://PATH` or http(s)://URL containing allowed users and fingerprints",
+		},
+		cli.StringFlag{
+			Name:  "keystore,k",
+			Usage: "keystore backend",
+			Value: "github",
+		},
+	}
+
+	sort.Sort(cli.FlagsByName(app.Flags))
 
 	app.Run(os.Args)
 }
@@ -24,15 +38,22 @@ func main() {
 func mainAction(c *cli.Context) error {
 	logrus.Info("Calling Main")
 
-	ds, err := sources.NewSource("file")
+	config, err := initConfig(c)
 	if err != nil {
 		return err
 	}
 
-	keyClient, err := keystores.NewBackend("github")
+	ds, err := sources.NewSource(config)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	keyClient, err := keystores.NewBackend(c.String("keystore"))
 	if err != nil {
 		return err
 	}
+
 	keys, err := ds.GetKeys()
 	if err != nil {
 		return err
