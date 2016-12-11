@@ -1,7 +1,28 @@
 ssh-pub-key-mgr
 ========
 
-A microservice that does micro things.
+A Microservice that polls a file, and calls github for SSH Keys.
+
+```
+NAME:
+   ssh-pub-key-mgr - set source flag, and send in the path to write authorized_keys
+
+USAGE:
+   ssh-pub-key-mgr [global options] command [command options] [arguments...]
+
+VERSION:
+   v0.0.0-dev
+
+COMMANDS:
+     help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --keystore value, -k value            keystore backend (default: "github")
+   --refresh-interval value, -r value    interval to check for updates in seconds (default: 600)
+   --source file://PATH, -s file://PATH  location to file://PATH or http(s)://URL containing allowed users and fingerprints
+   --help, -h                            show help
+   --version, -v                         print the version
+```
 
 ## Building
 
